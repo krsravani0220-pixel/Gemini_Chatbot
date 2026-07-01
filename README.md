@@ -152,7 +152,7 @@ Gemini\_Chatbot/
 
 
 
-\*\*Sai Diyaa\*\*
+\*\*K R Sravani\*\*
 
 
 
