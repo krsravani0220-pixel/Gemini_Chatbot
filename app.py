@@ -487,7 +487,7 @@ if user_prompt is not None:
                    if needs_google_search(cleaned_prompt):
 
                        grounding_tool = types.Tool(
-                           google_search=types.GoogleSearch()
+                         google_search=types.GoogleSearch()
                        )
 
                        response = client.models.generate_content(
@@ -496,35 +496,52 @@ if user_prompt is not None:
                            config=types.GenerateContentConfig(
                                tools=[grounding_tool]
                            ),
-                       )
+                        )
 
-                  else:
+                       grounded = True
 
-                      response = client.models.generate_content(
-                         model=MODEL_NAME,
-                         contents=contents,
-                      )
-                    reply_text = response.text if response and response.text else (
-                        "I'm sorry, I couldn't generate a response. Please try again."
-                    )
-                    try:
-                        candidates = getattr(response, "candidates", None)
-                        if candidates:
-                            grounding_metadata = getattr(candidates[0], "grounding_metadata", None)
-                            if grounding_metadata is not None:
-                                grounded = True
-                    except Exception:
+                   else:
+
+                        response = client.models.generate_content(
+                            model=MODEL_NAME,
+                            contents=contents,
+                        )
+
                         grounded = False
+
+                   reply_text = (
+                        response.text
+                        if response and response.text
+                        else "I'm sorry, I couldn't generate a response. Please try again."
+                   )
+
                 except Exception as e:
                     error_message = str(e).lower()
-                    if "api key" in error_message or "permission" in error_message or "unauthorized" in error_message:
-                        reply_text = "⚠️ Authentication error: Please check your GEMINI_API_KEY in the .env file."
-                    elif "network" in error_message or "connection" in error_message or "timeout" in error_message:
-                        reply_text = "⚠️ Network error: Unable to reach Gemini API. Please check your internet connection."
-                    elif "quota" in error_message or "rate" in error_message or "resource_exhausted" in error_message:
-                        reply_text = "⚠️ API quota exceeded or rate limited. Please try again later."
+
+                    if (
+                       "api key" in error_message
+                       or "permission" in error_message
+                       or "unauthorized" in error_message
+                    ):
+                       reply_text = "⚠️ Authentication error: Please check your GEMINI_API_KEY."
+
+                    elif (
+                         "network" in error_message
+                         or "connection" in error_message
+                         or "timeout" in error_message
+                    ):
+                         reply_text = "⚠️ Network error: Please check your internet connection."
+
+                    elif (
+                         "quota" in error_message
+                         or "rate" in error_message
+                         or "resource_exhausted" in error_message
+                    ):
+                         reply_text = "⚠️ API quota exceeded or rate limited. Please try again later."
+
                     else:
                         reply_text = f"⚠️ An unexpected error occurred: {e}"
+
                     grounded = None
 
         thinking_placeholder.empty()
