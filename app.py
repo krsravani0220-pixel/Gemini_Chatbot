@@ -1,9 +1,43 @@
 import os
 import datetime
+from zoneinfo import ZoneInfo
 import streamlit as st
 from dotenv import load_dotenv
 from google import genai
 from google.genai import types
+
+def needs_google_search(prompt: str) -> bool:
+    prompt = prompt.lower()
+
+    keywords = [
+        "today",
+        "latest",
+        "current",
+        "news",
+        "live",
+        "weather",
+        "temperature",
+        "stock",
+        "share price",
+        "bitcoin",
+        "crypto",
+        "election",
+        "score",
+        "match",
+        "ipl",
+        "world cup",
+        "price",
+        "recent",
+        "update",
+        "trending",
+        "who won",
+        "time now",
+        "currency",
+        "gold price",
+        "silver price"
+    ]
+
+    return any(word in prompt for word in keywords)
 
 load_dotenv()
 
@@ -425,7 +459,7 @@ if user_prompt is not None:
     if not cleaned_prompt:
         st.warning("⚠️ Please enter a valid message before sending.")
     else:
-        user_timestamp = datetime.datetime.now().strftime("%I:%M %p")
+        user_timestamp = datetime.datetime.now(ZoneInfo("Asia/Kolkata")).strftime("%I:%M %p")
         st.session_state.messages.append(
             {"role": "user", "content": cleaned_prompt, "timestamp": user_timestamp}
         )
@@ -447,15 +481,29 @@ if user_prompt is not None:
             with st.spinner(""):
                 grounded = False
                 try:
-                    grounding_tool = types.Tool(google_search=types.GoogleSearch())
-                    generation_config = types.GenerateContentConfig(tools=[grounding_tool])
-                    history_before_latest = st.session_state.messages[:-1]
-                    contents = build_contents(history_before_latest, cleaned_prompt)
-                    response = client.models.generate_content(
-                        model=MODEL_NAME,
-                        contents=contents,
-                        config=generation_config,
-                    )
+                   history_before_latest = st.session_state.messages[:-1]
+                   contents = build_contents(history_before_latest, cleaned_prompt)
+
+                   if needs_google_search(cleaned_prompt):
+
+                       grounding_tool = types.Tool(
+                           google_search=types.GoogleSearch()
+                       )
+
+                       response = client.models.generate_content(
+                           model=MODEL_NAME,
+                           contents=contents,
+                           config=types.GenerateContentConfig(
+                               tools=[grounding_tool]
+                           ),
+                       )
+
+                  else:
+
+                      response = client.models.generate_content(
+                         model=MODEL_NAME,
+                         contents=contents,
+                      )
                     reply_text = response.text if response and response.text else (
                         "I'm sorry, I couldn't generate a response. Please try again."
                     )
@@ -481,7 +529,7 @@ if user_prompt is not None:
 
         thinking_placeholder.empty()
 
-        ai_timestamp = datetime.datetime.now().strftime("%I:%M %p")
+        ai_timestamp = datetime.datetime.now(ZoneInfo("Asia/Kolkata")).strftime("%I:%M %p")
         render_message("assistant", reply_text, timestamp=ai_timestamp, grounded=grounded)
 
         st.session_state.messages.append(
